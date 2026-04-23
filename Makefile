@@ -1,11 +1,11 @@
-TWEAK_NAME = BypassLimpeza
+TWEAK_NAME = bypassV4
 
-BypassLimpeza_FILES = Tweak.xm
-BypassLimpeza_CFLAGS = -fobjc-arc -O3 -fvisibility=hidden
-BypassLimpeza_LDFLAGS = -Wl,-segalign,4000
+SpaceXitV4_FILES = Tweak.xm
+SpaceXitV4_CFLAGS = -fobjc-arc -O3 -fvisibility=hidden
+SpaceXitV4_LDFLAGS = -Wl,-segalign,4000
 
 export ARCHS = arm64
-export TARGET = iphone:clang:latest:14.5
+export TARGET = iphone:clang:latest:14.0
 
 include $(THEOS)/makefiles/common.mk
 include $(THEOS_MAKE_PATH)/tweak.mk
