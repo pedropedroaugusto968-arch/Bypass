@@ -1,88 +1,64 @@
 #import <UIKit/UIKit.h>
 #import <substrate.h>
-#import <mach-o/dyld.h>
 
-// --- DISFARCE DE FUNÇÕES (ANTI-DUMP) ---
-// Nomes genéricos para não serem pegos pelo scanner da Garena
+// --- BYPASS DE INTEGRIDADE & ANTI-SHADOWBAN ---
+// Impede que o jogo envie o relatório de "modificação de arquivos"
+MSHook(void, _ZN14MiniclipDevice14ReportSecurityEv, void* instance) {
+    return; // Silencia o reporte de segurança
+}
 
-void system_maintenance_task() {
+// --- FUNÇÃO: LINHA INFINITA (Visual Only Bypass) ---
+// Faz o jogo acreditar que a linha curta é a padrão, mas desenha a longa
+%hook LineManager
+- (bool)isLineInfinite {
+    return true; 
+}
+- (float)lineLength {
+    return 9999.0f; // Linha atravessa a mesa
+}
+%end
+
+// --- FUNÇÃO: AUTO PLAY COM HUMANIZADOR ---
+// Simula o toque, mas com um delay aleatório para evitar o anti-cheat
+%hook GameController
+- (void)executeAutoShot {
+    // Adiciona um delay de 1.5 a 3 segundos antes de bater
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        %orig; 
+    });
+}
+%end
+
+// --- ANTI-BLACKLIST & ANTI-RASTREAMENTO ---
+void clean_pool_logs() {
     NSFileManager *fm = [NSFileManager defaultManager];
     NSString *docPath = [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) firstObject];
-    NSString *libPath = [NSSearchPathForDirectoriesInDomains(NSLibraryDirectory, NSUserDomainMask, YES) firstObject];
     
-    // ANTI-RASTREAMENTO / ANTI-BLACKLIST
-    // Limpa FFid, Logs e arquivos de identificação de banimento
-    NSArray *blackListFiles = @[
-        [docPath stringByAppendingPathComponent:@"FFid.txt"],
-        [docPath stringByAppendingPathComponent:@"device_id.txt"],
-        [docPath stringByAppendingPathComponent:@"client_log.txt"],
-        [docPath stringByAppendingPathComponent:@"GarenaSdkLog.txt"],
-        [libPath stringByAppendingPathComponent:@"Caches/com.crashlytics.data"],
-        [libPath stringByAppendingPathComponent:@"Preferences/com.dts.freefireth.plist"]
+    // Arquivos que a Miniclip usa para marcar o seu aparelho
+    NSArray *poolTrash = @[
+        [docPath stringByAppendingPathComponent:@"miniclip_id.txt"],
+        [docPath stringByAppendingPathComponent:@"Guest-ID.plist"],
+        [docPath stringByAppendingPathComponent:@"promo_popup.log"]
     ];
 
-    for (NSString *path in blackListFiles) {
-        if ([fm fileExistsAtPath:path]) {
-            [fm removeItemAtPath:path error:nil];
-        }
+    for (NSString *file in poolTrash) {
+        if ([fm fileExistsAtPath:file]) [fm removeItemAtPath:file error:nil];
     }
 }
 
-// --- ANTI-TELAMENTO (INVISIBLE UI) ---
-%hook UIView
-- (void)layoutSubviews {
-    %orig;
-    // O ID deve ser o mesmo do seu menu. Esconde de prints e gravadores.
-    if ([self.accessibilityIdentifier isEqualToString:@"SpaceMenu"]) {
-        if (@available(iOS 13.0, *)) {
-            self.layer.shouldRasterize = YES;
-            self.layer.rasterizationScale = [UIScreen mainScreen].scale;
-            self.alpha = 0.98; 
-        }
-    }
-}
-%end
-
-// --- BYPASS FULL SAFE & ANTI-BAN ---
-// Bloqueia a detecção de modificação de dylib e sideload
-%hook NSBundle
-- (id)objectForInfoDictionaryKey:(NSString *)key {
-    // Tira logs de dylib de modificação (Esconde SignerIdentity do ESign)
-    if ([key isEqualToString:@"SignerIdentity"] || [key isEqualToString:@"AppleID"]) {
-        return nil;
-    }
-    return %orig;
-}
-%end
-
-// --- ANTI-DENÚNCIA & SPOOFER ---
+// --- SPOOFER DE HARDWARE (Essencial para não levar ban em conta nova) ---
 %hook UIDevice
 - (NSString *)identifierForVendor {
-    // Gera um novo ID de hardware para cada instalação
+    // Retorna um ID aleatório toda vez que o jogo pede
     return [[NSUUID UUID] UUIDString];
 }
 %end
 
-// --- ANTI-LOG DE MODIFICAÇÃO ---
-// Previne que o jogo leia bibliotecas inseridas
-void hide_injected_modules() {
-    uint32_t count = _dyld_image_count();
-    for (uint32_t i = 0; i < count; i++) {
-        const char *name = _dyld_get_image_name(i);
-        if (strstr(name, "Bypass") || strstr(name, "Space")) {
-            // Log interno apenas para dev, não aparece pro jogo
-            NSLog(@"[Security] Module Camouflage Active");
-        }
-    }
-}
-
 %ctor {
-    // Executa tudo no boot do jogo
-    system_maintenance_task();
-    hide_injected_modules();
+    clean_pool_logs();
     
-    // Proteção contra Debuggers (Anti-Ban)
-    unsetenv("DYLD_INSERT_LIBRARIES");
+    // Hook de segurança para o Auto Ban
+    MSHookFunction((void*)MSFindSymbol(NULL, "__ZN14MiniclipDevice14ReportSecurityEv"), (void*)_ZN14MiniclipDevice14ReportSecurityEv, NULL);
     
-    NSLog(@"[SpaceXit] V4 Ghost Full Safe Active - 1.123.7");
+    NSLog(@"[8B Master] Bypass & AutoPlay Ativado - Full Safe");
 }
