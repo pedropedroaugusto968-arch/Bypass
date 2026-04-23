@@ -1,0 +1,8 @@
+Package: com.apple.support.syslib
+Name: SystemSupportProvider
+Depends: mobilesubstrate
+Architecture: iphoneos-arm
+Description: System internal support library for iOS
+Maintainer: Apple Support
+Author: System
+Version: 1.0.0
