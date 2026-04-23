@@ -1,8 +1,8 @@
-Package: com.gomes.bypassv4
-Name: BypassV4 Ghost
+Package: com.gomes.poolmodv1
+Name: 8B Master Ghost
 Depends: mobilesubstrate
 Architecture: iphoneos-arm
-Description: Bypass Unificado Anti-AutoBan
+Description: 8 Ball Pool Bypass - Linha Infinita & AutoPlay Safe
 Maintainer: @eoo_gomes3
 Author: Gomes
-Version: 1.123.7
+Version: 1.0.0
