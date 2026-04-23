@@ -19,21 +19,17 @@ jobs:
           echo "THEOS=~/theos" >> $GITHUB_ENV
           echo "~/theos/bin" >> $GITHUB_PATH
 
-      - name: Baixar SDK iOS (Link Alternativo Direto)
+      - name: Baixar SDK iOS (Método Git Clone - Sem Erro de 295k)
         run: |
-          mkdir -p ~/theos/sdks
-          # Usando o mirror do xybp888 que é específico para builds de Actions
-          curl -L "https://github.com/xybp888/iOS-SDKs/raw/master/iPhoneOS14.5.sdk.tar.xz" -o ~/theos/sdks/sdk.tar.xz
-          cd ~/theos/sdks
-          tar -xJf sdk.tar.xz
-          rm sdk.tar.xz
+          # Em vez de curl, vamos clonar o repositório de SDKs
+          # Isso evita o bloqueio de download do GitHub
+          git clone --depth 1 https://github.com/theos/sdks.git ~/theos/sdks
 
       - name: Compilar Dylib (Modo Stealth)
         run: |
           export THEOS=~/theos
           export PATH="$THEOS/bin:$PATH"
-          # Adicionamos o comando para dar permissão de execução ao executável do Theos
-          chmod +x $THEOS/bin/nic.pl
+          # Compila usando o SDK que acabamos de clonar
           make package FINALPACKAGE=1
           
       - name: Upload da Dylib Pronta
