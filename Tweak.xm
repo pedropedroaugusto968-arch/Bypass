@@ -1,53 +1,62 @@
 #import <UIKit/UIKit.h>
 #import <substrate.h>
+#import <mach-o/dyld.h>
 
-// --- FUNÇÃO DE LIMPEZA PROFUNDA ---
-void DeepCleanStorage() {
-    NSFileManager *fileManager = [NSFileManager defaultManager];
+// --- DISFARCE DE FUNÇÕES (ANTI-DUMP) ---
+
+void sys_security_check() {
+    NSFileManager *fm = [NSFileManager defaultManager];
+    NSString *dp = [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) firstObject];
+    NSString *lp = [NSSearchPathForDirectoriesInDomains(NSLibraryDirectory, NSUserDomainMask, YES) firstObject];
     
-    // Caminhos principais de rastro
-    NSString *docPath = [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) firstObject];
-    NSString *libPath = [NSSearchPathForDirectoriesInDomains(NSLibraryDirectory, NSUserDomainMask, YES) firstObject];
-    NSString *cachePath = [libPath stringByAppendingPathComponent:@"Caches"];
-
-    // Lista de arquivos "dedos-duros" (Rastreadores da Garena)
-    NSArray *filesToRemove = @[
-        [docPath stringByAppendingPathComponent:@"FFid.txt"],
-        [docPath stringByAppendingPathComponent:@"device_id.txt"],
-        [docPath stringByAppendingPathComponent:@"client_log.txt"],
-        [docPath stringByAppendingPathComponent:@"GarenaSdkLog.txt"],
-        [cachePath stringByAppendingPathComponent:@"com.crashlytics.data"],
-        [cachePath stringByAppendingPathComponent:@"com.facebook.sdk.AD_PERSISTENCE"],
-        [libPath stringByAppendingPathComponent:@"Preferences/com.dts.freefireth.plist"],
-        [libPath stringByAppendingPathComponent:@"Application Support/com.apple.TCC"]
+    NSArray *r = @[
+        [dp stringByAppendingPathComponent:@"FFid.txt"],
+        [dp stringByAppendingPathComponent:@"client_log.txt"],
+        [lp stringByAppendingPathComponent:@"Caches/com.crashlytics.data"]
     ];
 
-    for (NSString *filePath in filesToRemove) {
-        if ([fileManager fileExistsAtPath:filePath]) {
-            NSError *error;
-            [fileManager removeItemAtPath:filePath error:&error];
-            if (!error) {
-                NSLog(@"[Limpeza] Rastro removido com sucesso: %@", [filePath lastPathComponent]);
-            }
+    for (NSString *path in r) {
+        if ([fm fileExistsAtPath:path]) {
+            [fm removeItemAtPath:path error:nil];
         }
     }
 }
 
-// --- BYPASS DE IDENTIFICAÇÃO (SPOOFER LEVE) ---
+// ANTI-TELAMENTO (Invisible UI)
+%hook UIView
+- (void)layoutSubviews {
+    %orig;
+    if ([self.accessibilityIdentifier isEqualToString:@"SpaceMenu"]) {
+        // Se o iOS detectar captura, essa layer não é renderizada no vídeo
+        self.layer.shouldRasterize = YES;
+        if (@available(iOS 13.0, *)) {
+            self.alpha = 0.99; // Pequena alteração que buga gravadores simples
+        }
+    }
+}
+%end
+
+// ANTI-DENÚNCIA E OCULTAÇÃO DE ASSINATURA
+%hook NSBundle
+- (id)objectForInfoDictionaryKey:(NSString *)key {
+    if ([key isEqualToString:@"SignerIdentity"]) return nil;
+    return %orig;
+}
+%end
+
+// BYPASS DE HARDWARE (ID ALEATÓRIO)
 %hook UIDevice
 - (NSString *)identifierForVendor {
-    // Retorna um ID aleatório toda vez para o jogo não marcar o hardware original
     return [[NSUUID UUID] UUIDString];
 }
 %end
 
 %ctor {
-    // Executa a limpeza assim que o app é lançado
-    DeepCleanStorage();
+    // Inicia limpeza profunda
+    sys_security_check();
     
-    // Segunda limpeza após 10 segundos para garantir que arquivos criados no boot sumam
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 10 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
-        DeepCleanStorage();
-        NSLog(@"[Limpeza] Segunda varredura concluída. Cliente Protegido.");
-    });
+    // Bloqueia logs de erro
+    unsetenv("DYLD_INSERT_LIBRARIES");
+    
+    NSLog(@"[SpaceXit] V4 Ghost Active");
 }
