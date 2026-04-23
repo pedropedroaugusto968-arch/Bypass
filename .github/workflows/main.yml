@@ -13,24 +13,25 @@ jobs:
       - name: Checkout do Código
         uses: actions/checkout@v4
 
-      - name: Instalar Theos
+      - name: Instalar Theos e ldid
         run: |
           git clone --recursive https://github.com/theos/theos.git ~/theos
+          # Baixa o ldid oficial para assinar a dylib
+          curl -L https://github.com/theos/ldid/releases/latest/download/ldid_macos_x86_64 -o ~/theos/bin/ldid
+          chmod +x ~/theos/bin/ldid
           echo "THEOS=~/theos" >> $GITHUB_ENV
           echo "~/theos/bin" >> $GITHUB_PATH
 
-      - name: Baixar SDK iOS (Correção Exit Code 128)
+      - name: Baixar SDK iOS
         run: |
-          # Remove a pasta sdks vazia que o Theos criou para evitar erro 128
           rm -rf ~/theos/sdks
-          # Clona os SDKs de forma limpa
           git clone --depth 1 https://github.com/theos/sdks.git ~/theos/sdks
 
       - name: Compilar Dylib (Modo Stealth)
         run: |
           export THEOS=~/theos
           export PATH="$THEOS/bin:$PATH"
-          # Comando para compilar
+          # FINALPACKAGE=1 garante que o código seja limpo e anti-ban
           make package FINALPACKAGE=1
           
       - name: Upload da Dylib Pronta
