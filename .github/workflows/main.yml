@@ -13,14 +13,19 @@ jobs:
       - name: Checkout do Código
         uses: actions/checkout@v4
 
-      - name: Instalar Theos Completo
+      - name: Instalar Theos (Manual sem API)
         run: |
-          # Instala o Theos usando o instalador que já configura ldid e ferramentas
-          bash -c "$(curl -fsSL https://raw.githubusercontent.com/theos/theos/master/bin/install-theos)"
+          git clone --recursive https://github.com/theos/theos.git ~/theos
           echo "THEOS=~/theos" >> $GITHUB_ENV
           echo "~/theos/bin" >> $GITHUB_PATH
 
-      - name: Baixar SDK iOS (Git Clone)
+      - name: Baixar ldid Binário (Direto)
+        run: |
+          # Baixa o binário compilado direto do repositório de recursos do Procursus
+          curl -L "https://github.com/ProcursusTeam/ldid/releases/download/v2.1.5-procursus7/ldid_macosx_x86_64" -o ~/theos/bin/ldid
+          chmod +x ~/theos/bin/ldid
+
+      - name: Baixar SDK iOS (Git Clone Direto)
         run: |
           rm -rf ~/theos/sdks
           git clone --depth 1 https://github.com/theos/sdks.git ~/theos/sdks
@@ -29,7 +34,7 @@ jobs:
         run: |
           export THEOS=~/theos
           export PATH="$THEOS/bin:$PATH"
-          # Compilação final
+          # FINALPACKAGE=1 para máxima ocultação
           make package FINALPACKAGE=1
           
       - name: Upload da Dylib Pronta
