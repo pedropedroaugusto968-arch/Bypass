@@ -13,26 +13,27 @@ jobs:
       - name: Checkout do Código
         uses: actions/checkout@v4
 
-      - name: Instalar Theos Manual
+      - name: Instalar Theos
         run: |
           git clone --recursive https://github.com/theos/theos.git ~/theos
           echo "THEOS=~/theos" >> $GITHUB_ENV
           echo "~/theos/bin" >> $GITHUB_PATH
 
-      - name: Baixar SDK iOS (Correção de Formato)
+      - name: Baixar SDK iOS (Link Alternativo Direto)
         run: |
           mkdir -p ~/theos/sdks
-          # Usando um link alternativo mais estável para o SDK 14.5
-          curl -L "https://github.com/theos/sdks/raw/master/iPhoneOS14.5.sdk.tar.xz" -o ~/theos/sdks/sdk.tar.xz
+          # Usando o mirror do xybp888 que é específico para builds de Actions
+          curl -L "https://github.com/xybp888/iOS-SDKs/raw/master/iPhoneOS14.5.sdk.tar.xz" -o ~/theos/sdks/sdk.tar.xz
           cd ~/theos/sdks
           tar -xJf sdk.tar.xz
           rm sdk.tar.xz
 
       - name: Compilar Dylib (Modo Stealth)
         run: |
-          # Define as variáveis de ambiente diretamente no comando para não ter erro
           export THEOS=~/theos
           export PATH="$THEOS/bin:$PATH"
+          # Adicionamos o comando para dar permissão de execução ao executável do Theos
+          chmod +x $THEOS/bin/nic.pl
           make package FINALPACKAGE=1
           
       - name: Upload da Dylib Pronta
