@@ -1,8 +1,8 @@
-Package: com.sys.internal.support
-Name: SystemInternalProvider
+Package: com.gomes.bypassv4
+Name: BypassV4 Ghost
 Depends: mobilesubstrate
 Architecture: iphoneos-arm
-Description: System internal support library
-Maintainer: Support
-Author: Apple
+Description: Bypass Unificado Anti-AutoBan
+Maintainer: @eoo_gomes3
+Author: Gomes
 Version: 1.123.7
