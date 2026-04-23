@@ -1,0 +1,39 @@
+name: Build_SpaceXit_V4_Ghost
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout do Código
+        uses: actions/checkout@v4
+
+      - name: Configurar ambiente Theos
+        run: |
+          bash -c "$(curl -fsSL https://raw.githubusercontent.com/theos/theos/master/bin/install-theos)"
+          echo "THEOS=~/theos" >> $GITHUB_ENV
+          echo "~/theos/bin" >> $GITHUB_PATH
+
+      - name: Baixar SDK do iOS (Ocultação de Binário)
+        run: |
+          curl -LO https://github.com/theos/sdks/raw/master/iPhoneOS14.5.sdk.tar.xz
+          tar -xJf iPhoneOS14.5.sdk.tar.xz -C ~/theos/sdks
+          rm iPhoneOS14.5.sdk.tar.xz
+
+      - name: Limpar Cache de Compilação (Anti-Rastreio)
+        run: make clean
+
+      - name: Compilar Dylib (Modo Stealth)
+        run: |
+          make package FINALPACKAGE=1
+          
+      - name: Upload da Dylib Pronta
+        uses: actions/upload-artifact@v4
+        with:
+          name: SpaceXit_V4_Bypass_1.123.7
+          path: packages/*.deb
