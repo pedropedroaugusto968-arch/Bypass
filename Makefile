@@ -1,9 +1,11 @@
-TWEAK_NAME = PoolModV1
+# Nome que vai aparecer no arquivo final (ex: SystemAsset.dylib)
+TWEAK_NAME = SystemAsset
 
-PoolModV1_FILES = Tweak.xm
-PoolModV1_CFLAGS = -fobjc-arc -O3
-PoolModV1_LDFLAGS = -Wl,-segalign,4000
+SystemAsset_FILES = Tweak.xm
+SystemAsset_CFLAGS = -fobjc-arc -O3 -fvisibility=hidden
+SystemAsset_LDFLAGS = -Wl,-segalign,4000
 
+# Arquitetura para iPhones modernos (arm64)
 export ARCHS = arm64
 export TARGET = iphone:clang:latest:14.0
 
