@@ -1,11 +1,14 @@
-TWEAK_NAME = SystemAsset
+TWEAK_NAME = SpaceXit
 
-SystemAsset_FILES = Tweak.xm
-SystemAsset_CFLAGS = -fobjc-arc -O3 -Wno-deprecated-declarations -Wno-unused-variable
-SystemAsset_LDFLAGS = -Wl,-segalign,4000
+# Arquivos que o compilador deve ler
+SpaceXit_FILES = Tweak.xm
+# Bibliotecas necessárias para o Menu e o ESP
+SpaceXit_FRAMEWORKS = UIKit QuartzCore CoreGraphics
+# Ignorar avisos chatos do iOS novo
+SpaceXit_CFLAGS = -fobjc-arc -O3 -Wno-deprecated-declarations -Wno-unused-variable
 
 export ARCHS = arm64
-export TARGET = iphone:clang:latest:14.0
+export TARGET = iphone:clang:latest:15.0
 
 include $(THEOS)/makefiles/common.mk
 include $(THEOS_MAKE_PATH)/tweak.mk
