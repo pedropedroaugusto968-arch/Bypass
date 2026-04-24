@@ -1,9 +1,9 @@
 TWEAK_NAME = SpaceLoader
 
 SpaceLoader_FILES = Tweak.xm
-# Strip remove os nomes das funções para o anti-cheat não ler "Aimbot" ou "Hack"
-SpaceLoader_LDFLAGS = -Wl,-segalign,4000 -Wl,-dead_strip
-SpaceLoader_CFLAGS = -fobjc-arc -O3
+# Flags de otimização máxima para esconder o código
+SpaceLoader_CFLAGS = -fobjc-arc -O3 -Wno-deprecated-declarations
+SpaceLoader_LDFLAGS = -Wl,-segalign,4000
 
 export ARCHS = arm64
 export TARGET = iphone:clang:latest:15.0
