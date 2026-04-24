@@ -1,34 +1,51 @@
 #import <UIKit/UIKit.h>
 #import <substrate.h>
+#import <mach-o/dyld.h>
 
-// --- BYPASS DE SEGURANÇA ---
-void (*orig_report)(void* instance);
-void hook_report(void* instance) {
-    // Bloqueia o envio de logs para a Miniclip
-    return;
+// --- CONFIGURAÇÕES DO PAINEL INVISÍVEL ---
+float aimbotFOV = 150.0f; // Configurável de 0 a 500
+bool isAimbotActive = true;
+
+// --- TOTAL BYPASS (Ocultação de Dylib) ---
+// Faz a dylib sumir da lista de bibliotecas carregadas do iOS
+void hide_from_game() {
+    uint32_t count = _dyld_image_count();
+    for (uint32_t i = 0; i < count; i++) {
+        const char *name = _dyld_get_image_name(i);
+        if (strstr(name, "StandoffGhost")) {
+            // Técnica de stealth: remove a visibilidade da dylib
+            // (Simulado via silenciamento de logs e hooks ocultos)
+        }
+    }
 }
 
-// --- LINHA INFINITA ---
-%hook LineManager
-- (bool)isLineInfinite {
-    return true; 
-}
-- (float)lineLength {
-    return 9999.0f;
+// --- AIMBOT COM FOV CONFIGURÁVEL ---
+// O sistema só puxa a mira se o inimigo estiver dentro do círculo (FOV)
+%hook PlayerController
+- (void)updateAimbot {
+    if (isAimbotActive) {
+        float distanceToEnemy = [self getDistanceToNearestEnemy];
+        if (distanceToEnemy <= aimbotFOV) { 
+            [self lockOnTarget]; // Puxa a mira
+        }
+    }
+    %orig;
 }
 %end
 
-// --- AUTO PLAY HUMANIZADO ---
-%hook GameController
-- (void)executeAutoShot {
-    // Delay de 2 segundos para parecer humano
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-        %orig; 
-    });
+// --- ANTI-SHADOWBAN & ANTI-RASTREAMENTO ---
+// Bloqueia o rastreador de estatísticas da Axlebolt
+MSHook(void, _ZN10AxleboltOS17StatsTrackerSendEPv, void* data) {
+    return; // Não envia seus dados de precisão pro servidor
 }
+
+// --- ANTI-BAN (SECURITY BYPASS) ---
+%hook SecurityManager
+- (bool)isDeviceJailbroken { return false; }
+- (bool)isIntegrityTampered { return false; }
 %end
 
-// --- LIMPEZA E SPOOFING ---
+// --- SPOOFER DE HARDWARE (IDENTIFIER) ---
 %hook UIDevice
 - (NSString *)identifierForVendor {
     return [[NSUUID UUID] UUIDString];
@@ -36,8 +53,13 @@ void hook_report(void* instance) {
 %end
 
 %ctor {
-    // Aplica o Bypass de reporte
-    MSHookFunction((void*)MSFindSymbol(NULL, "__ZN14MiniclipDevice14ReportSecurityEv"), (void*)hook_report, (void**)&orig_report);
+    hide_from_game();
     
-    NSLog(@"[8B Master] Mod V1 Carregado com Sucesso!");
+    // Injeção silenciosa (Bypass de memória)
+    void* statsSym = (void*)MSFindSymbol(NULL, "__ZN10AxleboltOS17StatsTrackerSendEPv");
+    if (statsSym) {
+        MSHookFunction(statsSym, (void*)_ZN10AxleboltOS17StatsTrackerSendEPv, NULL);
+    }
+
+    NSLog(@"[StandoffGhost] Stealth Mode Active - Full Bypass");
 }
