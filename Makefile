@@ -1,11 +1,9 @@
 TWEAK_NAME = SpaceXit
 
-# Arquivos que o compilador deve ler
 SpaceXit_FILES = Tweak.xm
-# Bibliotecas necessárias para o Menu e o ESP
-SpaceXit_FRAMEWORKS = UIKit QuartzCore CoreGraphics
-# Ignorar avisos chatos do iOS novo
-SpaceXit_CFLAGS = -fobjc-arc -O3 -Wno-deprecated-declarations -Wno-unused-variable
+SpaceXit_FRAMEWORKS = UIKit CoreGraphics
+# ESSA LINHA ABAIXO É O SEGREDO:
+SpaceXit_CFLAGS = -fobjc-arc -O3 -Wno-deprecated-declarations -Wno-error=objc-root-class
 
 export ARCHS = arm64
 export TARGET = iphone:clang:latest:15.0
