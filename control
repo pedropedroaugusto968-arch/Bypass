@@ -1,8 +1,8 @@
-Package: com.gomes.poolmodv1
-Name: 8B Master Ghost
+Package: com.gomes.standoffghost
+Name: Standoff 2 Stealth Mod
 Depends: mobilesubstrate
 Architecture: iphoneos-arm
-Description: 8 Ball Pool Bypass - Linha Infinita & AutoPlay Safe
+Description: Bypass Anti-Ban, Aimbot FOV e Anti-Shadowban para Standoff 2.
 Maintainer: @eoo_gomes3
 Author: Gomes
 Version: 1.0.0
