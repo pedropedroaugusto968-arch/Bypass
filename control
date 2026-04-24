@@ -1,8 +1,8 @@
-Package: com.gomes.standoffghost
-Name: Standoff 2 Stealth Mod
+Package: com.gomes.spacexit.flex
+Name: Space Xit - Vice Online
 Depends: mobilesubstrate
 Architecture: iphoneos-arm
-Description: Bypass Anti-Ban, Aimbot FOV e Anti-Shadowban para Standoff 2.
+Description: Painel Master: Aimbot, ESP, Spawn de Carros e Armas Grátis.
 Maintainer: @eoo_gomes3
 Author: Gomes
 Version: 1.0.0
