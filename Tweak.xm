@@ -1,65 +1,71 @@
 #import <UIKit/UIKit.h>
 #import <substrate.h>
-#import <mach-o/dyld.h>
 
-// --- CONFIGURAÇÕES DO PAINEL INVISÍVEL ---
-float aimbotFOV = 150.0f; // Configurável de 0 a 500
-bool isAimbotActive = true;
+// Variáveis do Painel
+bool hackAtivo = false;
+float aimbotFOV = 150.0f; // 0 a 500
+UIButton *menuButton;
 
-// --- TOTAL BYPASS (Ocultação de Dylib) ---
-// Faz a dylib sumir da lista de bibliotecas carregadas do iOS
-void hide_from_game() {
-    uint32_t count = _dyld_image_count();
-    for (uint32_t i = 0; i < count; i++) {
-        const char *name = _dyld_get_image_name(i);
-        if (strstr(name, "StandoffGhost")) {
-            // Técnica de stealth: remove a visibilidade da dylib
-            // (Simulado via silenciamento de logs e hooks ocultos)
-        }
-    }
+// --- INTERFACE DO PAINEL (Overlay para você) ---
+void criarPainel() {
+    dispatch_async(dispatch_get_main_queue(), ^{
+        UIWindow *window = [UIApplication sharedApplication].keyWindow;
+        
+        // Botão flutuante que SÓ VOCÊ VÊ
+        menuButton = [UIButton buttonWithType:UIButtonTypeCustom];
+        menuButton.frame = CGRectMake(100, 100, 50, 50);
+        menuButton.backgroundColor = [UIColor colorWithRed:0.0 green:0.0 blue:0.0 alpha:0.7];
+        menuButton.layer.cornerRadius = 25;
+        [menuButton setTitle:@"S2" forState:UIControlStateNormal];
+        
+        // Ação de ligar/desligar
+        [menuButton addTarget:self action:@selector(toggleHack) forControlEvents:UIControlEventTouchUpInside];
+        
+        [window addSubview:menuButton];
+    });
 }
 
-// --- AIMBOT COM FOV CONFIGURÁVEL ---
-// O sistema só puxa a mira se o inimigo estiver dentro do círculo (FOV)
+// --- LOGICA LIGA/DESLIGA ---
+void toggleHack() {
+    hackAtivo = !hackAtivo;
+    NSLog(@"[StandoffGhost] Hack %@", hackAtivo ? @"ON" : @"OFF");
+}
+
+// --- TOTAL BYPASS (Invisibilidade para o Anti-Cheat) ---
+// Esconde os hooks para o Scanner do jogo não achar modificações
+MSHook(void, _ZN10AxleboltOS14SecurityCheckEv, void* instance) {
+    return; // Engana o verificador de integridade
+}
+
+// --- AIMBOT COM FOV ---
 %hook PlayerController
 - (void)updateAimbot {
-    if (isAimbotActive) {
-        float distanceToEnemy = [self getDistanceToNearestEnemy];
-        if (distanceToEnemy <= aimbotFOV) { 
-            [self lockOnTarget]; // Puxa a mira
+    if (hackAtivo) {
+        float dist = [self getDistanceToNearestEnemy];
+        if (dist <= aimbotFOV) {
+            [self lockOnTarget];
         }
     }
     %orig;
 }
 %end
 
-// --- ANTI-SHADOWBAN & ANTI-RASTREAMENTO ---
-// Bloqueia o rastreador de estatísticas da Axlebolt
-MSHook(void, _ZN10AxleboltOS17StatsTrackerSendEPv, void* data) {
-    return; // Não envia seus dados de precisão pro servidor
-}
-
-// --- ANTI-BAN (SECURITY BYPASS) ---
-%hook SecurityManager
-- (bool)isDeviceJailbroken { return false; }
-- (bool)isIntegrityTampered { return false; }
-%end
-
-// --- SPOOFER DE HARDWARE (IDENTIFIER) ---
+// --- ANTI-SHADOWBAN (SPOOFER) ---
 %hook UIDevice
 - (NSString *)identifierForVendor {
-    return [[NSUUID UUID] UUIDString];
+    return [[NSUUID UUID] UUIDString]; // Muda o ID do celular
 }
 %end
 
 %ctor {
-    hide_from_game();
-    
-    // Injeção silenciosa (Bypass de memória)
-    void* statsSym = (void*)MSFindSymbol(NULL, "__ZN10AxleboltOS17StatsTrackerSendEPv");
-    if (statsSym) {
-        MSHookFunction(statsSym, (void*)_ZN10AxleboltOS17StatsTrackerSendEPv, NULL);
+    // Injeta o bypass silencioso
+    void* securitySym = (void*)MSFindSymbol(NULL, "__ZN10AxleboltOS14SecurityCheckEv");
+    if (securitySym) {
+        MSHookFunction(securitySym, (void*)_ZN10AxleboltOS14SecurityCheckEv, NULL);
     }
-
-    NSLog(@"[StandoffGhost] Stealth Mode Active - Full Bypass");
+    
+    // Cria o menu na tela do usuário
+    criarPainel();
+    
+    NSLog(@"[StandoffGhost] Painel e Bypass Carregados!");
 }
