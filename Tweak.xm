@@ -1,89 +1,113 @@
 #import <UIKit/UIKit.h>
 #import <substrate.h>
 
-// Declarações para o compilador não se perder
-@interface PlayerController : NSObject
-- (float)getDistanceToNearestEnemy;
-- (void)lockOnTarget;
+static bool aimbotOn = false, espOn = false, godModeOn = false;
+
+// --- ESTRUTURAS PARA O SPAWN E ARMAS ---
+@interface GameServer : NSObject
++ (void)spawnVehicle:(NSString *)modelName atPosition:(CGPoint)pos;
++ (void)giveWeaponToPlayer:(int)weaponID;
 @end
 
-// Variáveis de controle
-static bool hackAtivo = false;
-static float aimbotFOV = 150.0f;
-
-// --- FUNÇÃO DO BYPASS (DECLARAÇÃO CORRETA) ---
-void hook_security(void* instance) {
-    return;
-}
-
-// --- INTERFACE DO MENU (VERSÃO MODERNA) ---
-@interface StandoffMenu : NSObject
-+ (void)showMenu;
+@interface WeaponManager : NSObject
+- (bool)hasWeaponUnlocked:(int)id;
 @end
 
-@implementation StandoffMenu
-+ (void)showMenu {
-    dispatch_async(dispatch_get_main_queue(), ^{
-        // Pega a tela da forma que o iOS 13+ exige
-        UIWindow *window = nil;
-        if (@available(iOS 13.0, *)) {
-            for (UIWindowScene* scene in [UIApplication sharedApplication].connectedScenes) {
-                if (scene.activationState == UISceneActivationStateForegroundActive) {
-                    window = ((UIWindowScene*)scene).windows.firstObject;
-                    break;
-                }
-            }
-        } else {
-            window = [UIApplication sharedApplication].keyWindow;
-        }
+// --- 🔓 UNLOCKER DE ARMAS (TER TUDO GRÁTIS) ---
+%hook WeaponManager
+- (bool)hasWeaponUnlocked:(int)id {
+    return true; // Diz que você já comprou/liberou todas as armas
+}
+- (int)getWeaponPrice:(int)id {
+    return 0; // Se o jogo checar preço, retorna zero
+}
+%end
 
-        UIButton *btn = [UIButton buttonWithType:UIButtonTypeCustom];
-        btn.frame = CGRectMake(50, 150, 50, 50);
-        btn.backgroundColor = [[UIColor blackColor] colorWithAlphaComponent:0.7];
-        btn.layer.cornerRadius = 25;
-        [btn setTitle:@"S2" forState:UIControlStateNormal];
-        
-        // Cor do botão muda para avisar se está ligado ou desligado
-        [btn addTarget:self action:@selector(toggle:) forControlEvents:UIControlEventTouchUpInside];
-        [window addSubview:btn];
-    });
+// --- 🏎️ FUNÇÃO DE SPAWN (LOGICA) ---
+void spawnCarroNinja() {
+    // Exemplo: Spawna o carro "Sport_01" na frente do jogador
+    // [GameServer spawnVehicle:@"Supra_Custom" atPosition:CGPointMake(0,0)];
+    NSLog(@"[FlexCity] Comando de Spawn enviado!");
 }
 
-+ (void)toggle:(UIButton*)sender {
-    hackAtivo = !hackAtivo;
-    sender.backgroundColor = hackAtivo ? [[UIColor redColor] colorWithAlphaComponent:0.7] : [[UIColor blackColor] colorWithAlphaComponent:0.7];
-}
-@end
-
-// --- HOOKS DO JOGO ---
-%hook PlayerController
-- (void)update { // Supondo que 'update' seja o loop do jogo
+// --- 📦 ESP (DESENHAR CAIXAS) ---
+%hook PlayerRenderer
+- (void)renderESP {
+    if (espOn) {
+        // Lógica de desenho de Overlay (Bounding Box)
+    }
     %orig;
-    if (hackAtivo) {
-        float dist = [self getDistanceToNearestEnemy];
-        if (dist <= aimbotFOV) {
-            [self lockOnTarget];
-        }
-    }
 }
 %end
 
-%hook UIDevice
-- (NSString *)identifierForVendor {
-    return [[NSUUID UUID] UUIDString];
-}
-%end
+// --- 📱 PAINEL ATUALIZADO COM SPAWN ---
+@implementation FlexMasterMenu
 
-// --- INICIALIZAÇÃO ---
-%ctor {
-    // Bypass de Segurança
-    void* securitySym = (void*)MSFindSymbol(NULL, "__ZN10AxleboltOS14SecurityCheckEv");
-    if (securitySym) {
-        MSHookFunction(securitySym, (void*)hook_security, NULL);
-    }
++ (void)abrirPainel {
+    UIWindow *window = [[[UIApplication sharedApplication] windows] firstObject];
+    UIView *panel = [[UIView alloc] initWithFrame:CGRectMake(window.center.x - 110, window.center.y - 150, 220, 320)];
+    panel.backgroundColor = [[UIColor blackColor] colorWithAlphaComponent:0.95];
+    panel.layer.cornerRadius = 20;
+    panel.layer.borderWidth = 1;
+    panel.layer.borderColor = [UIColor purpleColor].CGColor;
+    panel.tag = 888;
 
-    // Carrega o menu
-    [StandoffMenu showMenu];
+    UILabel *title = [[UILabel alloc] initWithFrame:CGRectMake(0, 10, 220, 30)];
+    title.text = @"SPACE XIT - VICE ONLINE";
+    title.textColor = [UIColor cyanColor];
+    title.textAlignment = NSTextAlignmentCenter;
+    [panel addSubview:title];
+
+    // Botões de Toggle (Aimbot, ESP, God)
+    [self addToggle:@"AIMBOT" y:50 tag:1 view:panel action:@selector(toggleAim:)];
+    [self addToggle:@"ESP BOX" y:90 tag:2 view:panel action:@selector(toggleESP:)];
     
-    NSLog(@"[StandoffGhost] Rodando com Sucesso!");
+    // Botão Especial: UNLOCK ALL WEAPONS
+    UIButton *unlBtn = [UIButton buttonWithType:UIButtonTypeSystem];
+    unlBtn.frame = CGRectMake(20, 130, 180, 35);
+    unlBtn.backgroundColor = [UIColor orangeColor];
+    [unlBtn setTitle:@"LIBERAR TODAS ARMAS" forState:UIControlStateNormal];
+    [unlBtn setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
+    unlBtn.layer.cornerRadius = 5;
+    [panel addSubview:unlBtn];
+
+    // Botão de SPAWN CARRO
+    UIButton *spawnBtn = [UIButton buttonWithType:UIButtonTypeSystem];
+    spawnBtn.frame = CGRectMake(20, 175, 180, 35);
+    spawnBtn.backgroundColor = [UIColor blueColor];
+    [spawnBtn setTitle:@"SPAWN: CARRO LUXO" forState:UIControlStateNormal];
+    [spawnBtn setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
+    [spawnBtn addTarget:self action:@selector(spawnCar) forControlEvents:UIControlEventTouchUpInside];
+    spawnBtn.layer.cornerRadius = 5;
+    [panel addSubview:spawnBtn];
+
+    // Botão Fechar
+    UIButton *close = [UIButton buttonWithType:UIButtonTypeSystem];
+    close.frame = CGRectMake(60, 280, 100, 30);
+    [close setTitle:@"[ ESCONDER ]" forState:UIControlStateNormal];
+    [close addTarget:self action:@selector(fechar) forControlEvents:UIControlEventTouchUpInside];
+    [panel addSubview:close];
+
+    [window addSubview:panel];
 }
+
++ (void)addToggle:(NSString *)name y:(float)y tag:(int)tag view:(UIView *)v action:(SEL)sel {
+    UIButton *b = [UIButton buttonWithType:UIButtonTypeCustom];
+    b.frame = CGRectMake(20, y, 180, 35);
+    b.backgroundColor = [UIColor darkGrayColor];
+    b.layer.cornerRadius = 5;
+    [b setTitle:[NSString stringWithFormat:@"%@: OFF", name] forState:UIControlStateNormal];
+    [b addTarget:self action:sel forControlEvents:UIControlEventTouchUpInside];
+    [v addSubview:b];
+}
+
++ (void)spawnCar {
+    spawnCarroNinja();
+}
+
++ (void)fechar {
+    UIWindow *window = [[[UIApplication sharedApplication] windows] firstObject];
+    [[window viewWithTag:888] removeFromSuperview];
+}
+
+@end
