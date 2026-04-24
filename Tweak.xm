@@ -1,71 +1,89 @@
 #import <UIKit/UIKit.h>
 #import <substrate.h>
 
-// Variáveis do Painel
-bool hackAtivo = false;
-float aimbotFOV = 150.0f; // 0 a 500
-UIButton *menuButton;
+// Declarações para o compilador não se perder
+@interface PlayerController : NSObject
+- (float)getDistanceToNearestEnemy;
+- (void)lockOnTarget;
+@end
 
-// --- INTERFACE DO PAINEL (Overlay para você) ---
-void criarPainel() {
+// Variáveis de controle
+static bool hackAtivo = false;
+static float aimbotFOV = 150.0f;
+
+// --- FUNÇÃO DO BYPASS (DECLARAÇÃO CORRETA) ---
+void hook_security(void* instance) {
+    return;
+}
+
+// --- INTERFACE DO MENU (VERSÃO MODERNA) ---
+@interface StandoffMenu : NSObject
++ (void)showMenu;
+@end
+
+@implementation StandoffMenu
++ (void)showMenu {
     dispatch_async(dispatch_get_main_queue(), ^{
-        UIWindow *window = [UIApplication sharedApplication].keyWindow;
+        // Pega a tela da forma que o iOS 13+ exige
+        UIWindow *window = nil;
+        if (@available(iOS 13.0, *)) {
+            for (UIWindowScene* scene in [UIApplication sharedApplication].connectedScenes) {
+                if (scene.activationState == UISceneActivationStateForegroundActive) {
+                    window = ((UIWindowScene*)scene).windows.firstObject;
+                    break;
+                }
+            }
+        } else {
+            window = [UIApplication sharedApplication].keyWindow;
+        }
+
+        UIButton *btn = [UIButton buttonWithType:UIButtonTypeCustom];
+        btn.frame = CGRectMake(50, 150, 50, 50);
+        btn.backgroundColor = [[UIColor blackColor] colorWithAlphaComponent:0.7];
+        btn.layer.cornerRadius = 25;
+        [btn setTitle:@"S2" forState:UIControlStateNormal];
         
-        // Botão flutuante que SÓ VOCÊ VÊ
-        menuButton = [UIButton buttonWithType:UIButtonTypeCustom];
-        menuButton.frame = CGRectMake(100, 100, 50, 50);
-        menuButton.backgroundColor = [UIColor colorWithRed:0.0 green:0.0 blue:0.0 alpha:0.7];
-        menuButton.layer.cornerRadius = 25;
-        [menuButton setTitle:@"S2" forState:UIControlStateNormal];
-        
-        // Ação de ligar/desligar
-        [menuButton addTarget:self action:@selector(toggleHack) forControlEvents:UIControlEventTouchUpInside];
-        
-        [window addSubview:menuButton];
+        // Cor do botão muda para avisar se está ligado ou desligado
+        [btn addTarget:self action:@selector(toggle:) forControlEvents:UIControlEventTouchUpInside];
+        [window addSubview:btn];
     });
 }
 
-// --- LOGICA LIGA/DESLIGA ---
-void toggleHack() {
++ (void)toggle:(UIButton*)sender {
     hackAtivo = !hackAtivo;
-    NSLog(@"[StandoffGhost] Hack %@", hackAtivo ? @"ON" : @"OFF");
+    sender.backgroundColor = hackAtivo ? [[UIColor redColor] colorWithAlphaComponent:0.7] : [[UIColor blackColor] colorWithAlphaComponent:0.7];
 }
+@end
 
-// --- TOTAL BYPASS (Invisibilidade para o Anti-Cheat) ---
-// Esconde os hooks para o Scanner do jogo não achar modificações
-MSHook(void, _ZN10AxleboltOS14SecurityCheckEv, void* instance) {
-    return; // Engana o verificador de integridade
-}
-
-// --- AIMBOT COM FOV ---
+// --- HOOKS DO JOGO ---
 %hook PlayerController
-- (void)updateAimbot {
+- (void)update { // Supondo que 'update' seja o loop do jogo
+    %orig;
     if (hackAtivo) {
         float dist = [self getDistanceToNearestEnemy];
         if (dist <= aimbotFOV) {
             [self lockOnTarget];
         }
     }
-    %orig;
 }
 %end
 
-// --- ANTI-SHADOWBAN (SPOOFER) ---
 %hook UIDevice
 - (NSString *)identifierForVendor {
-    return [[NSUUID UUID] UUIDString]; // Muda o ID do celular
+    return [[NSUUID UUID] UUIDString];
 }
 %end
 
+// --- INICIALIZAÇÃO ---
 %ctor {
-    // Injeta o bypass silencioso
+    // Bypass de Segurança
     void* securitySym = (void*)MSFindSymbol(NULL, "__ZN10AxleboltOS14SecurityCheckEv");
     if (securitySym) {
-        MSHookFunction(securitySym, (void*)_ZN10AxleboltOS14SecurityCheckEv, NULL);
+        MSHookFunction(securitySym, (void*)hook_security, NULL);
     }
+
+    // Carrega o menu
+    [StandoffMenu showMenu];
     
-    // Cria o menu na tela do usuário
-    criarPainel();
-    
-    NSLog(@"[StandoffGhost] Painel e Bypass Carregados!");
+    NSLog(@"[StandoffGhost] Rodando com Sucesso!");
 }
